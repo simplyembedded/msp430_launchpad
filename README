@@ -1,0 +1,21 @@
+===========================================================
+Lesson 3: Blinking an LED
+--------------------------
+    Author: Chris Karaplis, info@simplyembedded.org
+    Date: October 5, 2014
+===========================================================
+
+Description
+------------
+ - Create an infinite loop to blink LED1
+
+Changelog
+----------
+ Added main.c
+
+How to build
+-------------
+To build, execute the following command from the console in the project root directory:
+
+    /opt/msp430-toolchain/bin/msp430-gcc -mmcu=msp430g2553 main.c
+
