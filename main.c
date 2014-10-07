@@ -1,10 +1,12 @@
 /**
  * @file: main.c
  * @author: Chris Karaplis
- * @date: 14-09-25
- * @brief Lesson 3: Blink an LED
+ * @brief program entry point
  *
- * The LED attached to P1.0 is toggled in an infite loop. 
+ * Changelog
+ * ---------
+ * 14-10-06: The LED attached to P1.0 is toggled in an infite loop.
+ *
  *
  * Copyright (c) 2014, simplyembedded.org
  *
@@ -37,7 +39,7 @@
 
 int main(int argc, char *argv[])
 {
-    /* Hold watchdog */
+    /* Hold the watchdog */
     WDTCTL = WDTPW + WDTHOLD;
 
     /* Set P1.0 direction to output */
