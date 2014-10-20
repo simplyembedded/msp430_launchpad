@@ -36,11 +36,35 @@
  */
 
 #include <msp430.h>
+#include <stdint.h>
+#include <stddef.h>
+
+/* LED blinking frequency */
+#define LED_BLINK_FREQ_HZ   2
+
+/* Number of cycles to delay based on 1MHz MCLK */
+#define LED_DELAY_CYCLES    (1000000 / LED_BLINK_FREQ_HZ)
+
+static int  _verify_cal_data(void);
 
 int main(int argc, char *argv[])
 {
     /* Hold the watchdog */
     WDTCTL = WDTPW + WDTHOLD;
+
+    if (_verify_cal_data() != 0) {
+        /*  Calibration data is corrupted...hang */
+        while(1);
+    }
+
+    /* Set the MCLK frequency to 1MHz */
+    DCOCTL = 0;
+    BCSCTL1 = CALBC1_1MHZ;
+    DCOCTL = CALDCO_1MHZ;
+
+    /* Set all pins to digital IO */
+    P1SEL = 0x0;
+    P2SEL = 0x0;
 
     /* Set P1.0 direction to output */
     P1DIR |= 0x01;
@@ -48,11 +72,32 @@ int main(int argc, char *argv[])
     /* Set P1.0 output high */
     P1OUT |= 0x01;
 
+    /* Set P1.3 to input */
+    P1DIR &= ~0x08;
+
+    /* Wait forever until the button is pressed */
+    while (P1IN & 0x08);
+
+    /* Now start blinking */
     while (1) {
-        /* Wait for 200000 cycles */
-        __delay_cycles(200000);
+        /* Wait for LED_DELAY_CYCLES cycles */
+        __delay_cycles(LED_DELAY_CYCLES);
         
         /* Toggle P1.0 output */
         P1OUT ^= 0x01;
     }
+}
+
+static int _verify_cal_data(void)
+{
+    /* Calibration is 64 bytes, XOR'd in 2 byte words */
+    size_t len = 62 / 2;
+    uint16_t *data = (uint16_t *) 0x10c2;
+    uint16_t crc = 0;
+
+    while (len-- > 0) {
+        crc ^= *(data++);
+    }
+
+    return (TLV_CHECKSUM + crc);
 }
