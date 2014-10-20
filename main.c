@@ -64,17 +64,17 @@ int main(int argc, char *argv[])
     BCSCTL1 = CALBC1_1MHZ;
     DCOCTL = CALDCO_1MHZ;
 
-    /* Set all pins to digital IO */
-    P1SEL = 0x0;
-    P2SEL = 0x0;
-
-    /* Set P1.0 direction to output */
+    /* Configure P1.0 as digital output */
+    P1SEL &= ~0x01;
+    P2SEL &= ~0x01;
     P1DIR |= 0x01;
 
     /* Set P1.0 output high */
     P1OUT |= 0x01;
 
-    /* Set P1.3 to input */
+    /* Configure P1.3 to digital input */
+    P1SEL &= ~0x08;
+    P2SEL &= ~0x08;
     P1DIR &= ~0x08;
 
     /* Wait forever until the button is pressed */
