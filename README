@@ -1,4 +1,20 @@
+============================================================
+Lesson 4: Configuring the MSP430
+--------------------------
+    Author: Chris Karaplis, info@simplyembedded.org
+    Date: October 19, 2014
 ===========================================================
+
+Description
+------------
+ - Modify the code so that the LED blinks at a rate of 2Hz 
+   once SW2 has been pressed
+
+Changelog
+----------
+ main.c
+
+==========================================================
 Lesson 3: Blinking an LED
 --------------------------
     Author: Chris Karaplis, info@simplyembedded.org

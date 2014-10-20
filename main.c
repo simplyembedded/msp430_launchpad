@@ -6,6 +6,8 @@
  * Changelog
  * ---------
  * 14-10-06: The LED attached to P1.0 is toggled in an infite loop.
+ * 14-10-19: Configure clock module for MCLK = 1MHz and the LED to blink at 2Hz.
+ *           Configure P1.3 as digital input and wait for button press before blinking
  *
  *
  * Copyright (c) 2014, simplyembedded.org
@@ -56,8 +58,8 @@ int main(int argc, char *argv[])
         /*  Calibration data is corrupted...hang */
         while(1);
     }
-
-    /* Set the MCLK frequency to 1MHz */
+    
+    /* Configure the clock module - MCLK = 1MHz */
     DCOCTL = 0;
     BCSCTL1 = CALBC1_1MHZ;
     DCOCTL = CALDCO_1MHZ;
@@ -90,7 +92,6 @@ int main(int argc, char *argv[])
 
 static int _verify_cal_data(void)
 {
-    /* Calibration is 64 bytes, XOR'd in 2 byte words */
     size_t len = 62 / 2;
     uint16_t *data = (uint16_t *) 0x10c2;
     uint16_t crc = 0;
