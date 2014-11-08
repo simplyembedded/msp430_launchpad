@@ -66,7 +66,6 @@ int main(int argc, char *argv[])
 
     /* Configure P1.0 as digital output */
     P1SEL &= ~0x01;
-    P2SEL &= ~0x01;
     P1DIR |= 0x01;
 
     /* Set P1.0 output high */
@@ -74,7 +73,6 @@ int main(int argc, char *argv[])
 
     /* Configure P1.3 to digital input */
     P1SEL &= ~0x08;
-    P2SEL &= ~0x08;
     P1DIR &= ~0x08;
 
     /* Wait forever until the button is pressed */
