@@ -8,7 +8,8 @@
  * 14-10-06: The LED attached to P1.0 is toggled in an infite loop.
  * 14-10-19: Configure clock module for MCLK = 1MHz and the LED to blink at 2Hz.
  *           Configure P1.3 as digital input and wait for button press before blinking
- *
+ * 14-11-13: Update for board rev 1.5. P1.3 no longer has a pull-up resistor so the
+ *           internal pull-up must be enabled
  *
  * Copyright (c) 2014, simplyembedded.org
  *
@@ -74,6 +75,10 @@ int main(int argc, char *argv[])
     /* Configure P1.3 to digital input */
     P1SEL &= ~0x08;
     P1DIR &= ~0x08;
+
+    /* Pull-up required for rev 1.5 Launchpad */
+    P1REN |= 0x08;
+    P1OUT |= 0x08;
 
     /* Wait forever until the button is pressed */
     while (P1IN & 0x08);
