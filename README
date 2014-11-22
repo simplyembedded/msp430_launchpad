@@ -1,4 +1,20 @@
 ============================================================
+Lesson 5: The MSP430 Architecture
+--------------------------
+    Author: Chris Karaplis, info@simplyembedded.org
+    Date: November 21, 2014
+===========================================================
+
+Description
+------------
+ - Refactored checksum calcuation to _calculate_checksum 
+
+Changelog
+----------
+ main.c
+
+
+============================================================
 Lesson 4: Configuring the MSP430
 --------------------------
     Author: Chris Karaplis, info@simplyembedded.org

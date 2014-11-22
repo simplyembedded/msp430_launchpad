@@ -10,6 +10,7 @@
  *           Configure P1.3 as digital input and wait for button press before blinking
  * 14-11-13: Update for board rev 1.5. P1.3 no longer has a pull-up resistor so the
  *           internal pull-up must be enabled
+ * 14-11-21: Refactored checksum calculation to _calculate_checksum
  *
  * Copyright (c) 2014, simplyembedded.org
  *
@@ -49,6 +50,7 @@
 #define LED_DELAY_CYCLES    (1000000 / LED_BLINK_FREQ_HZ)
 
 static int  _verify_cal_data(void);
+static uint16_t _calculate_checksum(uint16_t *address, size_t len);
 
 int main(int argc, char *argv[])
 {
@@ -95,13 +97,18 @@ int main(int argc, char *argv[])
 
 static int _verify_cal_data(void)
 {
-    size_t len = 62 / 2;
-    uint16_t *data = (uint16_t *) 0x10c2;
+    return (TLV_CHECKSUM + _calculate_checksum((uint16_t *) 0x10c2, 62));
+}
+
+static uint16_t _calculate_checksum(uint16_t *data, size_t len)
+{
     uint16_t crc = 0;
+    
+    len = len / 2;
 
     while (len-- > 0) {
         crc ^= *(data++);
     }
 
-    return (TLV_CHECKSUM + crc);
+    return crc;
 }
