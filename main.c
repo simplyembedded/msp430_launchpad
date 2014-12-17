@@ -11,6 +11,10 @@
  * 14-11-13: Update for board rev 1.5. P1.3 no longer has a pull-up resistor so the
  *           internal pull-up must be enabled
  * 14-11-21: Refactored checksum calculation to _calculate_checksum
+ * 14-12-17: Configure ACLK = VLOCLK = 12kHz
+ *           Implement watchdog functions and enable watchdog
+ *           Enable P1.3 interrupt and implemented ISR
+ *           Enable/disable blinking LED using interrupt
  *
  * Copyright (c) 2014, simplyembedded.org
  *
@@ -51,11 +55,15 @@
 
 static int  _verify_cal_data(void);
 static uint16_t _calculate_checksum(uint16_t *address, size_t len);
+static void _watchdog_disable(void);
+static void _watchdog_enable(void);
+static void _watchdog_pet(void);
+
+static volatile int _blink_enable = 0;
 
 int main(int argc, char *argv[])
 {
-    /* Hold the watchdog */
-    WDTCTL = WDTPW + WDTHOLD;
+    _watchdog_disable();
 
     if (_verify_cal_data() != 0) {
         /*  Calibration data is corrupted...hang */
@@ -67,6 +75,9 @@ int main(int argc, char *argv[])
     BCSCTL1 = CALBC1_1MHZ;
     DCOCTL = CALDCO_1MHZ;
 
+    /* Configure ACLK to to be sourced from VLO = ~12KHz */
+    BCSCTL3 |= LFXT1S_2;
+
     /* Configure P1.0 as digital output */
     P1SEL &= ~0x01;
     P1DIR |= 0x01;
@@ -76,22 +87,34 @@ int main(int argc, char *argv[])
 
     /* Configure P1.3 to digital input */
     P1SEL &= ~0x08;
+    P1SEL2 &= ~0x08;
     P1DIR &= ~0x08;
 
     /* Pull-up required for rev 1.5 Launchpad */
     P1REN |= 0x08;
     P1OUT |= 0x08;
+    
+    /* Set P1.3 interrupt to active-low edge  */
+    P1IES |= 0x08;
 
-    /* Wait forever until the button is pressed */
-    while (P1IN & 0x08);
+    /* Enable interrupt on P1.3 */
+    P1IE |= 0x08;
+
+    /* Global interrupt enable */
+    __enable_interrupt();
+    
+    _watchdog_enable();
 
     /* Now start blinking */
     while (1) {
-        /* Wait for LED_DELAY_CYCLES cycles */
-        __delay_cycles(LED_DELAY_CYCLES);
-        
-        /* Toggle P1.0 output */
-        P1OUT ^= 0x01;
+        _watchdog_pet();
+        if (_blink_enable != 0) {
+            /* Wait for LED_DELAY_CYCLES cycles */
+            __delay_cycles(LED_DELAY_CYCLES);
+            
+            /* Toggle P1.0 output */
+            P1OUT ^= 0x01;
+        }
     }
 }
 
@@ -112,3 +135,42 @@ static uint16_t _calculate_checksum(uint16_t *data, size_t len)
 
     return crc;
 }
+
+static void _watchdog_disable(void)
+{
+    /* Hold the watchdog */
+    WDTCTL = WDTPW + WDTHOLD;
+}
+
+static void _watchdog_enable(void)
+{
+    /* Read the watchdog interrupt flag */
+    if (IFG1 & WDTIFG) {
+        /* Clear if set */
+        IFG1 &= ~WDTIFG; 
+    }
+
+    _watchdog_pet();
+}
+
+static void _watchdog_pet(void)
+{
+    /**
+     * Enable the watchdog with following settings
+     *   - sourced by ACLK
+     *   - interval = 32786 / 12000 = 2.73s
+     */ 
+    WDTCTL = WDTPW + (WDTSSEL | WDTCNTCL);
+}
+
+__attribute__((interrupt(PORT1_VECTOR))) void port1_isr(void)
+{
+    if (P1IFG & 0x8) {
+        /* Clear the interrupt flag */
+        P1IFG &= ~0x8;
+
+        /* Toggle the blink enable */
+        _blink_enable ^= 1;
+    }
+}
+

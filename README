@@ -1,4 +1,22 @@
 ============================================================
+Lesson 6: Interrupts
+--------------------------
+    Author: Chris Karaplis, info@simplyembedded.org
+    Date: December 17, 2014
+===========================================================
+
+Description
+------------
+ - Configure ACLK = VLOCLK = 12kHz
+ - Implement watchdog functions and enable watchdog
+ - Enable P1.3 interrupt and implemented ISR
+ - Enable/disable blinking LED using interrupt
+
+Changelog
+----------
+ main.c
+
+============================================================
 Lesson 5: The MSP430 Architecture
 --------------------------
     Author: Chris Karaplis, info@simplyembedded.org
