@@ -32,15 +32,13 @@
 
 #include "board.h"
 #include "watchdog.h"
+#include "timer.h"
+#include <stddef.h>
 #include <msp430.h>
 
-/* LED blinking frequency */
-#define LED_BLINK_FREQ_HZ   2
-
-/* Number of cycles to delay based on 1MHz MCLK */
-#define LED_DELAY_CYCLES    (1000000 / LED_BLINK_FREQ_HZ)
-
 static volatile int _blink_enable = 0;
+
+static void blink_led(void *arg);
 
 int main(int argc, char *argv[])
 {
@@ -48,20 +46,38 @@ int main(int argc, char *argv[])
     (void) argv;
 
     if (board_init() == 0) {
-        /* Start blinking the LED */
+        int timer_handle = -1;
+
         while (1) {
             watchdog_pet();
-            if (_blink_enable != 0) {
-                /* Wait for LED_DELAY_CYCLES cycles */
-                __delay_cycles(LED_DELAY_CYCLES);
-                
-                /* Toggle P1.0 output */
-                P1OUT ^= 0x01;
+            
+            /**
+             * If blinking is enabled and the timer handle is 
+             * negative (invalid) create a periodic timer with
+             * a timeout of 500ms
+             */
+            if (_blink_enable != 0 ) {
+                if (timer_handle < 0) {
+                    timer_handle = timer_create(500, 1, blink_led, NULL); 
+                }
+            } else {
+                if (timer_handle != -1) {
+                    timer_delete(timer_handle);
+                    timer_handle = -1;
+                }
             }
         }
     }
 
     return 0;
+}
+
+static void blink_led(void *arg)
+{
+    (void) arg;
+
+    /* Toggle P1.0 output */
+    P1OUT ^= 0x01;
 }
 
 __attribute__((interrupt(PORT1_VECTOR))) void port1_isr(void)

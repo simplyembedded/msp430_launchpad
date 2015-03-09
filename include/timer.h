@@ -1,7 +1,7 @@
 /**
- * \file board.c
+ * \file timer.h
  * \author Chris Karaplis
- * \brief Board initialization API 
+ * \brief Timer API
  *
  * Copyright (c) 2015, simplyembedded.org
  *
@@ -30,67 +30,33 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "board.h"
-#include "watchdog.h"
-#include "tlv.h"
-#include "timer.h"
-#include <msp430.h>
+#ifndef __TIMER__
+#define __TIMER__
+
+#include <stdint.h>
 
 /**
- * \brief Initialize all board dependant functionality
- * \return 0 on success, -1 otherwise
+ * \brief Initialize the timer module
+ * \return 0 on success, -1 othewise
  */
-int board_init(void)
-{
-    watchdog_disable();
+int timer_init(void);
 
-    /* Check calibration data */
-    if (tlv_verify() != 0) {
-        /*  Calibration data is corrupted...hang */
-        while(1);
-    }
-    
-    /* Configure the clock module - MCLK = 1MHz */
-    DCOCTL = 0;
-    BCSCTL1 = CALBC1_1MHZ;
-    DCOCTL = CALDCO_1MHZ;
+/**
+ * \brief Create and start a timer
+ * \param[in] timeout_ms - the time timeout in ms
+ * \param[in] periodic - non-zero for a periodic timer,  0 for single shot
+ * \param[in] callback - timer callback function
+ * \param[in] arg - callback function private data
+ * \return non-negative integer - the timer handle - on success, -1 otherwise
+ */
+int timer_create(uint16_t timeout_ms, int periodic, void (*callback)(void *), void *arg);
 
-    /* Configure ACLK to to be sourced from VLO = ~12KHz */
-    BCSCTL3 |= LFXT1S_2;
+/**
+ * \brief Delete a timer
+ * \param[in] handle - the timer handle to delete
+ * \return 0 if the handle is valid, -1 otherwise
+ */
+int timer_delete(int handle);
 
-    /* Initialize the timer module */
-    if (timer_init() != 0) {
-        /* Timers could not be initialized...hang */
-        while (1);
-    }
-
-    /* Configure P1.0 as digital output */
-    P1SEL &= ~0x01;
-    P1DIR |= 0x01;
-
-    /* Set P1.0 output high */
-    P1OUT |= 0x01;
-
-    /* Configure P1.3 to digital input */
-    P1SEL &= ~0x08;
-    P1SEL2 &= ~0x08;
-    P1DIR &= ~0x08;
-
-    /* Pull-up required for rev 1.5 Launchpad */
-    P1REN |= 0x08;
-    P1OUT |= 0x08;
-    
-    /* Set P1.3 interrupt to active-low edge  */
-    P1IES |= 0x08;
-
-    /* Enable interrupt on P1.3 */
-    P1IE |= 0x08;
-
-    /* Global interrupt enable */
-    __enable_interrupt();
-    
-    watchdog_enable();
-
-    return 0;
-}
+#endif /* __TIMER__ */
 
