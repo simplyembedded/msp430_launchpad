@@ -34,6 +34,7 @@
 #include "watchdog.h"
 #include "tlv.h"
 #include "timer.h"
+#include "uart.h"
 #include <msp430.h>
 
 /**
@@ -42,6 +43,8 @@
  */
 int board_init(void)
 {
+    uart_config_t config;
+
     watchdog_disable();
 
     /* Check calibration data */
@@ -86,10 +89,21 @@ int board_init(void)
     /* Enable interrupt on P1.3 */
     P1IE |= 0x08;
 
+    /* Configure P1.1 and P1.2 for UART (USCI_A0) */
+    P1SEL |= 0x6;
+    P1SEL2 |= 0x6;
+
     /* Global interrupt enable */
     __enable_interrupt();
-    
+ 
     watchdog_enable();
+    
+    /* Initialize UART to 9600 baud */
+    config.baud = 9600;
+
+    if (uart_init(&config) != 0) {
+        while (1);
+    }
 
     return 0;
 }

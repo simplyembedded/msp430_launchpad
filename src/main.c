@@ -33,12 +33,23 @@
 #include "board.h"
 #include "watchdog.h"
 #include "timer.h"
+#include "menu.h"
+#include "uart.h"
+#include "defines.h"
 #include <stddef.h>
+#include <string.h>
 #include <msp430.h>
 
 static volatile int _blink_enable = 0;
+static uint16_t _timer_ms = 0;
 
 static void blink_led(void *arg);
+static int set_blink_freq(void);
+
+static const struct menu_item main_menu[] = 
+{
+    {"Set blinking frequency", set_blink_freq},
+};
 
 int main(int argc, char *argv[])
 {
@@ -48,17 +59,26 @@ int main(int argc, char *argv[])
     if (board_init() == 0) {
         int timer_handle = -1;
 
+        uart_puts("\n**********************************************");
+        uart_puts("\nSimply Embedded tutorials for MSP430 Launchpad");
+        uart_puts("\nsimplyembedded.org");
+        uart_puts("\nVersion: 0.9");
+        uart_puts("\n"__DATE__);
+        uart_puts("\n**********************************************");
+
+        menu_init(main_menu, ARRAY_SIZE(main_menu));
+        
         while (1) {
             watchdog_pet();
-            
+            menu_run();
+       
             /**
              * If blinking is enabled and the timer handle is 
-             * negative (invalid) create a periodic timer with
-             * a timeout of 500ms
+             * negative (invalid) create a periodic timer
              */
             if (_blink_enable != 0 ) {
                 if (timer_handle < 0) {
-                    timer_handle = timer_create(500, 1, blink_led, NULL); 
+                    timer_handle = timer_create(_timer_ms, 1, blink_led, NULL); 
                 }
             } else {
                 if (timer_handle != -1) {
@@ -78,6 +98,17 @@ static void blink_led(void *arg)
 
     /* Toggle P1.0 output */
     P1OUT ^= 0x01;
+}
+
+static int set_blink_freq(void)
+{
+    const unsigned int value = menu_read_uint("Enter the blinking frequency (Hz): ");
+
+    if (value > 0) {
+        _timer_ms = 1000 / value;
+    }
+
+    return (value > 0) ? 0 : -1;
 }
 
 __attribute__((interrupt(PORT1_VECTOR))) void port1_isr(void)
