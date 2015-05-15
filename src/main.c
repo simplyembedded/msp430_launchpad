@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
         uart_puts("\n**********************************************");
         uart_puts("\nSimply Embedded tutorials for MSP430 Launchpad");
         uart_puts("\nsimplyembedded.org");
-        uart_puts("\nVersion: 0.9");
+        uart_puts("\nVersion: 0.10");
         uart_puts("\n"__DATE__);
         uart_puts("\n**********************************************");
 
@@ -71,7 +71,8 @@ int main(int argc, char *argv[])
         while (1) {
             watchdog_pet();
             menu_run();
-       
+      
+            __delay_cycles(1000000);
             /**
              * If blinking is enabled and the timer handle is 
              * negative (invalid) create a periodic timer

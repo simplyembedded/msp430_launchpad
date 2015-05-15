@@ -30,7 +30,7 @@ OBJS:=$(patsubst %.c,$(OBJ_DIR)/%.o,$(notdir $(SRCS)))
 ELF:=$(BIN_DIR)/app.out
 
 # Compile flags
-CFLAGS:= -mmcu=msp430g2553 -c -Wall -Werror -Wextra -Wshadow -std=gnu90 -Wpedantic -MMD -I$(INC_DIR)
+CFLAGS:= -mmcu=msp430g2553 -mhwmult=none -c -Wall -Werror -Wextra -Wshadow -std=gnu90 -Wpedantic -MMD -I$(INC_DIR)
 
 # Linker flags
 LDFLAGS:= -mmcu=msp430g2553

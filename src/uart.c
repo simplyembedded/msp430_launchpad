@@ -32,6 +32,7 @@
 
 #include "uart.h"
 #include "defines.h"
+#include "ring_buffer.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <msp430.h>
@@ -45,9 +46,13 @@ struct baud_value
 };
 
 /* Table of baud rate register values from reference manual (SLAU144) */
-const struct baud_value baud_tbl[] = {
+static const struct baud_value _baud_tbl[] = {
     {9600, 104, 0, 0x2}
 };
+
+/* RX ring bufer */
+static rbd_t _rbd;
+static char _rbmem[8];
 
 /**
  * \brief Initialize the UART peripheral
@@ -66,22 +71,31 @@ int uart_init(uart_config_t *config)
         UCA0CTL1 |= UCSSEL_2;
 
         /* Find the settings from the baud rate table */
-        for (i = 0; i < ARRAY_SIZE(baud_tbl); i++) {
-            if (baud_tbl[i].baud == config->baud) {
+        for (i = 0; i < ARRAY_SIZE(_baud_tbl); i++) {
+            if (_baud_tbl[i].baud == config->baud) {
                 break;
             }
         }
 
-        if (i < ARRAY_SIZE(baud_tbl)) {
+        if (i < ARRAY_SIZE(_baud_tbl)) {
+            rb_attr_t attr = {sizeof(_rbmem[0]), ARRAY_SIZE(_rbmem), _rbmem};
+
             /* Set the baud rate */
-            UCA0BR0 = baud_tbl[i].UCAxBR0;
-            UCA0BR1 = baud_tbl[i].UCAxBR1;
-            UCA0MCTL = baud_tbl[i].UCAxMCTL;
-                            
-            /* Enable the USCI peripheral (take it out of reset) */
-            UCA0CTL1 &= ~UCSWRST;
-            status = 0;
-        };
+            UCA0BR0 = _baud_tbl[i].UCAxBR0;
+            UCA0BR1 = _baud_tbl[i].UCAxBR1;
+            UCA0MCTL = _baud_tbl[i].UCAxMCTL;
+                           
+            /* Initialize the ring buffer */
+            if (ring_buffer_init(&_rbd, &attr) == 0) {                 
+                /* Enable the USCI peripheral (take it out of reset) */
+                UCA0CTL1 &= ~UCSWRST;
+
+                /* Enable rx interrupts */
+                IE2 |= UCA0RXIE;
+
+                status = 0;
+            }
+        }
     }
 
     return status;
@@ -93,13 +107,11 @@ int uart_init(uart_config_t *config)
  */
 int uart_getchar(void)
 {
-    int chr = -1;
+    char c = -1;
+    
+    ring_buffer_get(_rbd, &c);
 
-    if (IFG2 & UCA0RXIFG) {
-        chr = UCA0RXBUF;
-    }
-
-    return chr;
+    return c;
 }
 
 /**
@@ -150,3 +162,14 @@ int uart_puts(const char *str)
     return status;
 }
 
+__attribute__((interrupt(USCIAB0RX_VECTOR))) void rx_isr(void)
+{
+    if (IFG2 & UCA0RXIFG) {
+        const char c = UCA0RXBUF;
+        
+        /* Clear the interrupt flag */
+        IFG2 &= ~UCA0RXIFG;
+
+        ring_buffer_put(_rbd, &c);
+    }
+}
