@@ -45,10 +45,12 @@ static uint16_t _timer_ms = 0;
 
 static void blink_led(void *arg);
 static int set_blink_freq(void);
+static int stopwatch(void);
 
 static const struct menu_item main_menu[] = 
 {
     {"Set blinking frequency", set_blink_freq},
+    {"Stopwatch", stopwatch},
 };
 
 int main(int argc, char *argv[])
@@ -62,7 +64,7 @@ int main(int argc, char *argv[])
         uart_puts("\n**********************************************");
         uart_puts("\nSimply Embedded tutorials for MSP430 Launchpad");
         uart_puts("\nsimplyembedded.org");
-        uart_puts("\nVersion: 0.10");
+        uart_puts("\nVersion: 0.11");
         uart_puts("\n"__DATE__);
         uart_puts("\n**********************************************");
 
@@ -72,7 +74,6 @@ int main(int argc, char *argv[])
             watchdog_pet();
             menu_run();
       
-            __delay_cycles(1000000);
             /**
              * If blinking is enabled and the timer handle is 
              * negative (invalid) create a periodic timer
@@ -110,6 +111,50 @@ static int set_blink_freq(void)
     }
 
     return (value > 0) ? 0 : -1;
+}
+
+static int stopwatch(void)
+{
+    struct time start_time;
+    struct time end_time;
+    
+    uart_puts("\nPress any key to start/stop the stopwatch: ");
+    
+    /* Wait to start */
+    while (uart_getchar() == -1) {watchdog_pet();}
+    
+    if (timer_capture(&start_time) == 0) {
+        uart_puts("\nRunning...");
+
+        /* Wait to stop */
+        while (uart_getchar() == -1) {watchdog_pet();}
+        
+        if (timer_capture(&end_time) == 0) {
+            size_t i;
+            char time_str[] = "00000:000";
+            unsigned int sec = end_time.sec - start_time.sec;
+            unsigned int ms = end_time.ms - start_time.ms;
+
+            /* Convert the seconds to a string */
+            for (i = 4; (i > 0) && (sec > 0); i--) {
+                time_str[i] = sec % 10 + '0';
+                sec /= 10;
+            }
+   
+            /* Convert the milliseconds to a string */
+            for (i = 8; (i > 5) && (ms > 0); i--) {
+                time_str[i] = ms % 10 + '0';
+                ms /= 10;
+            }
+
+            /* Display the result */
+            time_str[sizeof(time_str) - 1] = '\0';
+            uart_puts("\nTime: ");
+            uart_puts(time_str);
+        }
+    }
+
+    return 0;
 }
 
 __attribute__((interrupt(PORT1_VECTOR))) void port1_isr(void)

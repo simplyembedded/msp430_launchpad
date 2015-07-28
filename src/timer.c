@@ -51,10 +51,13 @@ struct timer
 
 static struct timer _timer[MAX_TIMERS];
 static volatile uint16_t _timer_tick = 0;
+static volatile uint16_t _capture_tick = 0;
+static volatile uint16_t _capture_ta1ccr1 = 0;
+static volatile int _capture_flag = 0;
 
 /**
  * \brief Initialize the timer module
- * \return 0 on success, -1 othewise
+ * \return 0 on success, -1 otherwise
  */
 int timer_init(void)
 {
@@ -69,6 +72,15 @@ int timer_init(void)
 
     /* Enable CCIE interupt */
     TA1CCTL0 = CCIE;
+
+    /**
+     * Timer A1 capture/control block 1 set to the following configuration:
+     *  - capture mode
+     *  - syncronized mode 
+     *  - capture on all edges 
+     *  - interrupt enabled
+     */
+    TA1CCTL1 = CM_3 | CCIS_2 | SCS | CAP | CCIE;
 
     return 0;
 }
@@ -139,6 +151,47 @@ int timer_delete(int handle)
     return status;
 }
 
+/**
+ * \brief Capture the current value of the timer
+ * \param[out] time - the time structure to fill with captured time
+ * \return 0 on success, -1 otherwise
+ */
+int timer_capture(struct time *time)
+{
+    int err = -1;
+
+    if (time != NULL ) {
+        uint32_t ms;
+
+        /* Toggle the capture input select to trigger a capture event */
+        TA1CCTL1 ^= 0x1000;
+
+        /**
+         * Wait for the capture to complete
+         */
+        while (_capture_flag == 0);
+
+        /* Save the number of ms from the timer tick */
+        ms = (uint32_t) _capture_tick * 100;
+        
+        /* Save captured timer value in ms */
+        ms += ((uint32_t) _capture_ta1ccr1 * 2) / 1000;
+
+        /* Save the number of milliseconds */
+        time->ms = ms % 1000;
+
+        /* Save number of seconds */
+        time->sec = ms / 1000;
+
+        /* Reset _capture_flag for next capture */
+        _capture_flag = 0;
+
+        err = 0;
+    }
+    
+    return err;
+}
+
 __attribute__((interrupt(TIMER1_A0_VECTOR))) void timer1_isr(void)
 {
     size_t i;
@@ -162,5 +215,18 @@ __attribute__((interrupt(TIMER1_A0_VECTOR))) void timer1_isr(void)
                 _timer[i].callback = NULL;
             }
         }
+    }
+}
+
+__attribute__((interrupt(TIMER1_A1_VECTOR))) void timer1_taiv_isr(void)
+{
+    /* Check for TACCR1 interrupt */
+    if (TA1IV & TA1IV_TACCR1) {
+        /* Save timer values */
+        _capture_tick = _timer_tick;
+        _capture_ta1ccr1 = TA1CCR1;
+
+        /* Set capture flag */
+        _capture_flag = 1;
     }
 }

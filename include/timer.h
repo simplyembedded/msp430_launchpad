@@ -35,9 +35,16 @@
 
 #include <stdint.h>
 
+/* Time structure */
+struct time
+{
+    unsigned int sec;
+    unsigned int ms;
+};
+
 /**
  * \brief Initialize the timer module
- * \return 0 on success, -1 othewise
+ * \return 0 on success, -1 otherwise
  */
 int timer_init(void);
 
@@ -57,6 +64,13 @@ int timer_create(uint16_t timeout_ms, int periodic, void (*callback)(void *), vo
  * \return 0 if the handle is valid, -1 otherwise
  */
 int timer_delete(int handle);
+
+/**
+ * \brief Capture the current value of the timer
+ * \param[out] time - the time structure to fill with captured time
+ * \return 0 on success, -1 otherwise
+ */
+int timer_capture(struct time *time);
 
 #endif /* __TIMER__ */
 

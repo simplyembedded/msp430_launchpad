@@ -107,11 +107,14 @@ int uart_init(uart_config_t *config)
  */
 int uart_getchar(void)
 {
+    int retval = -1;
     char c = -1;
     
-    ring_buffer_get(_rbd, &c);
+    if (ring_buffer_get(_rbd, &c) == 0) {
+        retval = (int) c;
+    }
 
-    return c;
+    return retval;
 }
 
 /**
