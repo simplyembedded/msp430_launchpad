@@ -49,7 +49,7 @@ static int stopwatch(void);
 
 static const struct menu_item main_menu[] = 
 {
-    {"Set blinking frequency", set_blink_freq},
+    {"Set LED blinking frequency", set_blink_freq},
     {"Stopwatch", stopwatch},
 };
 
@@ -104,10 +104,10 @@ static void blink_led(void *arg)
 
 static int set_blink_freq(void)
 {
-    const unsigned int value = menu_read_uint("Enter the blinking frequency (Hz): ");
+    const unsigned int value = menu_read_uint("Enter the LED blinking frequency (Hz): ");
 
     if (value > 0) {
-        _timer_ms = 1000 / value;
+        _timer_ms = 1000 / (2 * value);
     }
 
     return (value > 0) ? 0 : -1;
