@@ -46,7 +46,7 @@
 #define LED_BLINK_FREQ_HZ   2
 
 /* Number of cycles to delay based on 1MHz MCLK */
-#define LED_DELAY_CYCLES    (1000000 / LED_BLINK_FREQ_HZ)
+#define LED_DELAY_CYCLES    (1000000 / (2 * LED_BLINK_FREQ_HZ))
 
 static int  _verify_cal_data(void);
 
