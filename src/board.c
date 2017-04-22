@@ -35,6 +35,7 @@
 #include "tlv.h"
 #include "timer.h"
 #include "uart.h"
+#include "i2c.h"
 #include <msp430.h>
 
 /**
@@ -93,6 +94,10 @@ int board_init(void)
     P1SEL |= 0x6;
     P1SEL2 |= 0x6;
 
+    /* Configure P1.6 and P1.7 for I2C */
+    P1SEL  |= BIT6 + BIT7;
+    P1SEL2 |= BIT6 + BIT7;
+
     /* Global interrupt enable */
     __enable_interrupt();
  
@@ -102,6 +107,10 @@ int board_init(void)
     config.baud = 9600;
 
     if (uart_init(&config) != 0) {
+        while (1);
+    }
+
+    if (i2c_init() != 0) {
         while (1);
     }
 

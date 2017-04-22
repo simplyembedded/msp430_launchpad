@@ -1,7 +1,7 @@
 /**
- * \file defines.h
+ * \file i2c.h
  * \author Chris Karaplis
- * \brief Generic macro definitions
+ * \brief I2C master driver
  *
  * Copyright (c) 2015, simplyembedded.org
  *
@@ -30,8 +30,39 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* Macro to get the size of an array */
-#define ARRAY_SIZE(array) (sizeof(array)/sizeof(array[0]))
+#ifndef __I2C_H__
+#define __I2C_H__
 
-/* Macro to ignore unused parameters */
-#define IGNORE(p)         ((void) p)
+#include <stdint.h>
+#include <stddef.h>
+
+/* I2C slave device structure */
+struct i2c_device
+{
+    uint8_t address;
+};
+
+/* I2C transaction data */
+struct i2c_data
+{
+    const void *tx_buf;
+    size_t tx_len;
+    void *rx_buf;
+    size_t rx_len;
+};
+
+/**
+ * \brief Initialize the I2C peripheral
+ * \return 0 on success, -1 otherwise
+ */
+int i2c_init(void);
+
+/**
+ * \brief Perform an I2C transfer
+ * \param[in] dev - the I2C slave device
+ * \param[in/out] data - data structure containing the buffers
+ * \return 0 on success, -1 otherwise
+ */
+int i2c_transfer(const struct i2c_device *dev, struct i2c_data *data);
+
+#endif /* __I2C_H__ */ 

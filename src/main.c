@@ -35,6 +35,7 @@
 #include "timer.h"
 #include "menu.h"
 #include "uart.h"
+#include "i2c.h"
 #include "defines.h"
 #include <stddef.h>
 #include <string.h>
@@ -43,14 +44,19 @@
 static volatile int _blink_enable = 0;
 static uint16_t _timer_ms = 0;
 
+static char *_int_to_ascii(int value);
 static void blink_led(void *arg);
 static int set_blink_freq(void);
 static int stopwatch(void);
+static int eeprom_read(void);
+static int eeprom_write(void);
 
 static const struct menu_item main_menu[] = 
 {
     {"Set LED blinking frequency", set_blink_freq},
     {"Stopwatch", stopwatch},
+    {"EEPROM Read Byte", eeprom_read},
+    {"EEPROM Write Byte", eeprom_write}
 };
 
 int main(int argc, char *argv[])
@@ -64,7 +70,7 @@ int main(int argc, char *argv[])
         uart_puts("\n**********************************************");
         uart_puts("\nSimply Embedded tutorials for MSP430 Launchpad");
         uart_puts("\nsimplyembedded.org");
-        uart_puts("\nVersion: 0.11");
+        uart_puts("\nVersion: 0.12");
         uart_puts("\n"__DATE__);
         uart_puts("\n**********************************************");
 
@@ -130,32 +136,93 @@ static int stopwatch(void)
         while (uart_getchar() == -1) {watchdog_pet();}
         
         if (timer_capture(&end_time) == 0) {
-            size_t i;
-            char time_str[] = "00000:000";
             unsigned int sec = end_time.sec - start_time.sec;
-            unsigned int ms = end_time.ms - start_time.ms;
-
-            /* Convert the seconds to a string */
-            for (i = 4; (i > 0) && (sec > 0); i--) {
-                time_str[i] = sec % 10 + '0';
-                sec /= 10;
-            }
-   
-            /* Convert the milliseconds to a string */
-            for (i = 8; (i > 5) && (ms > 0); i--) {
-                time_str[i] = ms % 10 + '0';
-                ms /= 10;
-            }
+            unsigned int ms = end_time.ms - start_time.ms;            
 
             /* Display the result */
-            time_str[sizeof(time_str) - 1] = '\0';
             uart_puts("\nTime: ");
-            uart_puts(time_str);
+            uart_puts(_int_to_ascii(sec));
+            uart_putchar('.');
+            uart_puts(_int_to_ascii(ms));
+            uart_putchar('\n');
         }
     }
 
     return 0;
 }
+
+static int eeprom_read(void)
+{
+    int err;
+    struct i2c_device dev;
+    struct i2c_data data;    
+    uint8_t rx_data[1];
+    uint8_t address;
+
+    dev.address = 0x50;
+    
+    address = (uint8_t) menu_read_uint("Enter the address to read: ");
+
+    data.tx_buf = &address;
+    data.tx_len = sizeof(address);
+    data.rx_len = ARRAY_SIZE(rx_data);
+    data.rx_buf = (uint8_t *) rx_data;
+
+    err = i2c_transfer(&dev, &data);
+
+    if (err == 0) {
+        uart_puts("\nData: ");
+        uart_puts(_int_to_ascii(rx_data[0]));
+        uart_putchar('\n');
+    }
+
+    return err;
+}
+
+static int eeprom_write(void)
+{
+    int err;
+    struct i2c_device dev;
+    struct i2c_data data;    
+    uint8_t write_cmd[2];
+
+    dev.address = 0x50;
+    
+    write_cmd[0] = menu_read_uint("Enter the address to write: ");
+    write_cmd[1] = menu_read_uint("Enter the data to write: ");
+
+    data.tx_buf = write_cmd;
+    data.tx_len = ARRAY_SIZE(write_cmd);
+    data.rx_len = 0;
+
+    err = i2c_transfer(&dev, &data);
+
+    return err;
+}
+
+static char *_int_to_ascii(int value)
+{
+    static char str[7];
+    char *ptr = &str[sizeof(str) - 1];
+
+    /* NULL terminate the string */
+    *ptr = '\0';
+
+    do {
+        ptr--;
+        *ptr = (value % 10) + '0';
+        value /= 10;
+    } while (value > 0);
+
+    /* Set the negative sign if required */
+    if (value < 0) {
+        ptr--;
+        *ptr = '-';
+    } 
+
+    return ptr;
+}
+
 
 __attribute__((interrupt(PORT1_VECTOR))) void port1_isr(void)
 {
@@ -166,5 +233,4 @@ __attribute__((interrupt(PORT1_VECTOR))) void port1_isr(void)
         /* Toggle the blink enable */
         _blink_enable ^= 1;
     }
-}
-
+}        
