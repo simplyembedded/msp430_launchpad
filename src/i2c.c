@@ -189,12 +189,7 @@ static int _receive(const struct i2c_device *dev, uint8_t *buf, size_t nbytes)
     /* If no error and bytes left to receive, receive the data */
     while ((err == 0) && (nbytes > 0)) {
         /* Wait for the data */
-        while ((IFG2 & UCB0RXIFG) == 0) {
-            err = _check_ack(dev);
-            if (err < 0) {
-                break;
-            }
-        }
+        while ((IFG2 & UCB0RXIFG) == 0);
 
         *buf = UCB0RXBUF;
         buf++;
