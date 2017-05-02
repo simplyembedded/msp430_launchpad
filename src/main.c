@@ -44,7 +44,7 @@
 static volatile int _blink_enable = 0;
 static uint16_t _timer_ms = 0;
 
-static char *_int_to_ascii(int value);
+static char *_uint_to_ascii(unsigned int value);
 static void blink_led(void *arg);
 static int set_blink_freq(void);
 static int stopwatch(void);
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
         uart_puts("\n**********************************************");
         uart_puts("\nSimply Embedded tutorials for MSP430 Launchpad");
         uart_puts("\nsimplyembedded.org");
-        uart_puts("\nVersion: 0.12");
+        uart_puts("\nVersion: 0.12.1");
         uart_puts("\n"__DATE__);
         uart_puts("\n**********************************************");
 
@@ -141,9 +141,9 @@ static int stopwatch(void)
 
             /* Display the result */
             uart_puts("\nTime: ");
-            uart_puts(_int_to_ascii(sec));
+            uart_puts(_uint_to_ascii(sec));
             uart_putchar('.');
-            uart_puts(_int_to_ascii(ms));
+            uart_puts(_uint_to_ascii(ms));
             uart_putchar('\n');
         }
     }
@@ -172,7 +172,7 @@ static int eeprom_read(void)
 
     if (err == 0) {
         uart_puts("\nData: ");
-        uart_puts(_int_to_ascii(rx_data[0]));
+        uart_puts(_uint_to_ascii(rx_data[0]));
         uart_putchar('\n');
     }
 
@@ -200,7 +200,7 @@ static int eeprom_write(void)
     return err;
 }
 
-static char *_int_to_ascii(int value)
+static char *_uint_to_ascii(unsigned int value)
 {
     static char str[7];
     char *ptr = &str[sizeof(str) - 1];
@@ -213,12 +213,6 @@ static char *_int_to_ascii(int value)
         *ptr = (value % 10) + '0';
         value /= 10;
     } while (value > 0);
-
-    /* Set the negative sign if required */
-    if (value < 0) {
-        ptr--;
-        *ptr = '-';
-    } 
 
     return ptr;
 }
